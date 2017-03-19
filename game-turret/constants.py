@@ -1,4 +1,6 @@
 # Game Constants
+screen_width = 1280
+screen_height = 720
 aim_rotation_speed = 45.0
 turret_rotation_speed = 10000000.0
 aim_angle_range = {'min': -60, 'max': 60}

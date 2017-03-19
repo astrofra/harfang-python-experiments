@@ -1,5 +1,5 @@
 import gs
-import math
+from math import radians, cos, sin
 import random
 from constants import *
 
@@ -14,7 +14,7 @@ def setup_game_level(plus=None):
 
 	scn.GetPhysicSystem().SetDebugVisuals(True)
 
-	cam_matrix = gs.Matrix4.TransformationMatrix(gs.Vector3(0, 15, 3), gs.Vector3(math.radians(90), 0, 0))
+	cam_matrix = gs.Matrix4.TransformationMatrix(gs.Vector3(0, 15, 3), gs.Vector3(radians(90), 0, 0))
 	cam = plus.AddCamera(scn, cam_matrix)
 	plus.AddLight(scn, gs.Matrix4.TranslationMatrix((-10, 10, 10)))
 	ground = plus.AddPhysicPlane(scn)
@@ -34,7 +34,7 @@ def create_turret(plus=None, scn=None, pos=gs.Vector3(0, 0.75, 0), rot=gs.Vector
 
 def rotate_turret(turret, angle, mass):
 	rot = turret[0].GetTransform().GetRotation()
-	dt_rot = math.radians(angle) - rot.y
+	dt_rot = radians(angle) - rot.y
 	angular_vel = turret[1].GetAngularVelocity().y
 	dt_rot -= angular_vel
 	turret[1].SetIsSleeping(False)
@@ -62,9 +62,21 @@ def destroy_enemy(plus, scn, enemy):
 	scn.RemoveNode(enemy)
 
 
+def render_aim_cursor(plus, scn, pos_center, angle):
+	radius = 150.0
+	angle = 90 - angle
+	a = gs.Vector2(cos(radians(angle)), sin(radians(angle))) * radius * 1.15
+	b = gs.Vector2(cos(radians(angle - 5)), sin(radians(angle - 5))) * radius
+	c = gs.Vector2(cos(radians(angle + 5)), sin(radians(angle + 5))) * radius
+	plus.Triangle2D(screen_width * 0.5 + a.x, screen_height * 0.15 + a.y,
+					screen_width * 0.5 + b.x, screen_height * 0.15 + b.y,
+					screen_width * 0.5 + c.x, screen_height * 0.15 + c.y,
+					gs.Color.Green, gs.Color.Green, gs.Color.Green)
+
+
 def game():
 	plus = gs.GetPlus()
-	plus.RenderInit(1280, 720)
+	plus.RenderInit(screen_width, screen_height)
 	game_device = gs.GetInputSystem().GetDevice("keyboard")
 
 	scn, ground = setup_game_level(plus)
@@ -125,6 +137,7 @@ def game():
 
 		plus.UpdateScene(scn, dt)
 		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle))
+		render_aim_cursor(plus, scn, turret[0].GetTransform().GetPosition() + gs.Vector3(0, 1, 0), target_angle)
 		plus.Flip()
 
 game()
