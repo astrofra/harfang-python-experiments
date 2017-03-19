@@ -59,6 +59,7 @@ def throw_bullet(plus, scn, pos, dir):
 
 
 def destroy_enemy(plus, scn, enemy):
+	pos = enemy.GetTransform().GetPosition()
 	scn.RemoveNode(enemy)
 
 
@@ -75,11 +76,35 @@ def render_aim_cursor(plus, scn, pos_center, angle):
 
 
 def display_hud(plus, player_energy, cool_down):
+
+	plus.Quad2D(screen_width * 0.015, screen_height * 0.225,
+				player_energy * screen_width * 0.15, screen_height * 0.225,
+				player_energy * screen_width * 0.15, screen_height * 0.175,
+				screen_width * 0.015, screen_height * 0.175,
+				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
+
 	plus.Quad2D(screen_width * 0.015, screen_height * 0.15,
-				(cool_down) * screen_width * 0.15, screen_height * 0.15,
-				(cool_down) * screen_width * 0.15, screen_height * 0.1,
+				cool_down * screen_width * 0.15, screen_height * 0.15,
+				cool_down * screen_width * 0.15, screen_height * 0.1,
 				screen_width * 0.015, screen_height * 0.1,
 				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
+
+
+def rvect(r):
+	return gs.Vector3(random.uniform(-r, r), random.uniform(-r, r), random.uniform(-r, r))
+
+
+def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
+	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(0)
+	new_debris_list = []
+	for i in range(debris_amount):
+		debris_size = random.uniform(0.1, 0.25)
+		debris = plus.AddPhysicCube(scn, gs.Matrix4().TransformationMatrix(pos + rvect(debris_radius), rvect(radians(45))),
+									debris_size, debris_size, debris_size, 0.05)
+		debris[1].ApplyLinearImpulse(rvect(0.25))
+		new_debris_list.append(debris[0])
+
+	return new_debris_list
 
 
 def game():
@@ -92,9 +117,11 @@ def game():
 	target_angle = 0.0
 
 	enemy_list = []
+	debris_list = []
 	spawn_timer = 0.0
 	turret_cool_down = 0.0
 	enemy_spawn_interval = 5  # every n second
+	player_life = max_player_life
 
 	while not plus.KeyPress(gs.InputDevice.KeyEscape):
 		dt = plus.UpdateClock()
@@ -136,23 +163,36 @@ def game():
 
 			if gs.Vector3.Dist(turret[0].GetTransform().GetPosition(), enemy[0].GetTransform().GetPosition()) < 1.5:
 				destroy_enemy(plus, scn, enemy[0])
+				debris_list.extend(create_explosion(plus, scn, enemy[0].GetTransform().GetPosition()))
 				enemy_list.remove(enemy)
+				player_life -= 1
 			else:
 				col_pairs = scn.GetPhysicSystem().GetCollisionPairs(enemy[0])
 				if len(col_pairs) > 0:
 					for col_pair in col_pairs:
-						if col_pair.GetNodeB().GetName() == 'bullet': # or col_pair.GetNodeB().GetName() == 'bullet':
+						if col_pair.GetNodeB().GetName() == 'bullet':
+							pos = col_pair.GetNodeB().GetTransform().GetPosition()
+							debris_list.extend(create_explosion(plus, scn, pos, 8, 0.25))
+
+							pos = enemy[0].GetTransform().GetPosition()
 							destroy_enemy(plus, scn, enemy[0])
 							enemy_list.remove(enemy)
 							scn.RemoveNode(col_pair.GetNodeB())
+							debris_list.extend(create_explosion(plus, scn, pos))
 
 		# Game difficulty
 		enemy_spawn_interval = max(1.0, enemy_spawn_interval - dt.to_sec() * 0.025)
 
+		# Cleanup debris
+		if len(debris_list) > max_debris:
+			tmp_debris = debris_list[0]
+			debris_list.remove(debris_list[0])
+			scn.RemoveNode(tmp_debris)
+
 		plus.UpdateScene(scn, dt)
 		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle) + ' ' + str(enemy_spawn_interval))
 		render_aim_cursor(plus, scn, turret[0].GetTransform().GetPosition() + gs.Vector3(0, 1, 0), target_angle)
-		display_hud(plus, 1.0, max(0, turret_cool_down) / turret_cool_down_duration)
+		display_hud(plus, player_life / max_player_life, max(0, turret_cool_down) / turret_cool_down_duration)
 		plus.Flip()
 
 game()
