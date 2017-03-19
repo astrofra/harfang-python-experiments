@@ -74,6 +74,14 @@ def render_aim_cursor(plus, scn, pos_center, angle):
 					gs.Color.Green, gs.Color.Green, gs.Color.Green)
 
 
+def display_hud(plus, player_energy, cool_down):
+	plus.Quad2D(screen_width * 0.015, screen_height * 0.15,
+				(cool_down) * screen_width * 0.15, screen_height * 0.15,
+				(cool_down) * screen_width * 0.15, screen_height * 0.1,
+				screen_width * 0.015, screen_height * 0.1,
+				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
+
+
 def game():
 	plus = gs.GetPlus()
 	plus.RenderInit(screen_width, screen_height)
@@ -144,6 +152,7 @@ def game():
 		plus.UpdateScene(scn, dt)
 		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle) + ' ' + str(enemy_spawn_interval))
 		render_aim_cursor(plus, scn, turret[0].GetTransform().GetPosition() + gs.Vector3(0, 1, 0), target_angle)
+		display_hud(plus, 1.0, max(0, turret_cool_down) / turret_cool_down_duration)
 		plus.Flip()
 
 game()
