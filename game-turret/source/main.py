@@ -5,6 +5,7 @@ from constants import *
 
 gs.LoadPlugins()
 
+
 def setup_game_level(plus=None):
 	scn = plus.NewScene()
 
@@ -42,9 +43,21 @@ def rotate_turret(turret, angle, mass):
 
 def spawn_enemy(plus, scn, pos = gs.Vector3(0, 2, 5)):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(0)
-	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.7)
+	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.7, 6, 16, enemy_mass)
 
 	return root
+
+
+def throw_bullet(plus, scn, pos, dir):
+	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(gs.LockY)
+	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.2, 3, 8)
+	root[1].ApplyLinearImpulse(dir * bullet_velocity)
+
+	return root
+
+
+def destroy_enemy(plus, scn, enemy):
+	scn.RemoveNode(enemy)
 
 
 def game():
@@ -69,6 +82,9 @@ def game():
 			if game_device.IsDown(gs.InputDevice.KeyLeft):
 				target_angle -= dt.to_sec() * aim_rotation_speed
 
+		if game_device.WasPressed(gs.InputDevice.KeySpace):
+			throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(2))
+
 		target_angle = max(min(target_angle, aim_angle_range['max']), aim_angle_range['min'])
 
 		rotate_turret(turret, target_angle, turret_mass)
@@ -77,7 +93,7 @@ def game():
 		spawn_timer += dt.to_sec()
 		if spawn_timer > enemy_spawn_interval:
 			spawn_timer = 0
-			spawn_pos = gs.Vector3(random.uniform(-5, 5), 2, random.uniform(4.5, 5.5))
+			spawn_pos = gs.Vector3(random.uniform(-5, 5), 5, random.uniform(5.5, 6.5))
 			new_enemy = spawn_enemy(plus, scn, spawn_pos)
 			enemy_list.append([new_enemy[0], new_enemy[1]])
 
@@ -85,7 +101,12 @@ def game():
 			# make enemy crawl toward the player
 			enemy_dir = turret[0].GetTransform().GetPosition() - enemy[0].GetTransform().GetPosition()
 			enemy_dir.Normalize()
-			enemy[1].ApplyLinearForce(enemy_dir)
+			enemy[1].SetIsSleeping(False)
+			enemy[1].ApplyLinearForce(enemy_dir * 0.25 * enemy_mass)
+
+			if gs.Vector3.Dist(turret[0].GetTransform().GetPosition(), enemy[0].GetTransform().GetPosition()) < 1.5:
+				destroy_enemy(plus, scn, enemy[0])
+				enemy_list.remove(enemy)
 
 		plus.UpdateScene(scn, dt)
 		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle))
