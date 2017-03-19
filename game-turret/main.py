@@ -12,7 +12,7 @@ def setup_game_level(plus=None):
 	while not scn.IsReady():
 		plus.UpdateScene(scn, plus.UpdateClock())
 
-	scn.GetPhysicSystem().SetDebugVisuals(True)
+	scn.GetPhysicSystem().SetDebugVisuals(False)
 
 	cam_matrix = gs.Matrix4.TransformationMatrix(gs.Vector3(0, 15, 3), gs.Vector3(radians(90), 0, 0))
 	cam = plus.AddCamera(scn, cam_matrix)
@@ -86,6 +86,7 @@ def game():
 	enemy_list = []
 	spawn_timer = 0.0
 	turret_cool_down = 0.0
+	enemy_spawn_interval = 5  # every n second
 
 	while not plus.KeyPress(gs.InputDevice.KeyEscape):
 		dt = plus.UpdateClock()
@@ -111,7 +112,10 @@ def game():
 		spawn_timer += dt.to_sec()
 		if spawn_timer > enemy_spawn_interval:
 			spawn_timer = 0
-			spawn_pos = gs.Vector3(random.uniform(-5, 5), 5, random.uniform(5.5, 6.5))
+			spawn_pos = gs.Vector3(random.uniform(-10, 10), 2.5, random.uniform(5.5, 6.5))
+			spawn_pos.Normalize()
+			spawn_pos = spawn_pos * 10.0
+			spawn_pos.y = 5.0
 			new_enemy = spawn_enemy(plus, scn, spawn_pos)
 			enemy_list.append([new_enemy[0], new_enemy[1]])
 
@@ -134,9 +138,11 @@ def game():
 							enemy_list.remove(enemy)
 							scn.RemoveNode(col_pair.GetNodeB())
 
+		# Game difficulty
+		enemy_spawn_interval = max(1.0, enemy_spawn_interval - dt.to_sec() * 0.025)
 
 		plus.UpdateScene(scn, dt)
-		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle))
+		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle) + ' ' + str(enemy_spawn_interval))
 		render_aim_cursor(plus, scn, turret[0].GetTransform().GetPosition() + gs.Vector3(0, 1, 0), target_angle)
 		plus.Flip()
 
