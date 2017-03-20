@@ -25,7 +25,7 @@ def setup_game_level(plus=None):
 def create_turret(plus=None, scn=None, pos=gs.Vector3(0, 0.75, 0), rot=gs.Vector3(), w=1, h=1.25, d=1, mass = 10):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(gs.LockX + gs.LockY + gs.LockZ + gs.LockRotX + gs.LockRotZ)
 	root = plus.AddPhysicCube(scn, gs.Matrix4.TransformationMatrix(pos, rot), w, h, d, mass)
-	# root[1].SetAngularDamping(0.995)
+	root[1].SetAngularDamping(1.0)
 	cannon = plus.AddCube(scn, gs.Matrix4.TranslationMatrix((0, h * 0.2, d * 0.75)), w * 0.35, w * 0.35, d)
 	cannon.GetTransform().SetParent(root[0])
 
@@ -35,10 +35,8 @@ def create_turret(plus=None, scn=None, pos=gs.Vector3(0, 0.75, 0), rot=gs.Vector
 def rotate_turret(turret, angle, mass):
 	rot = turret[0].GetTransform().GetRotation()
 	dt_rot = radians(angle) - rot.y
-	angular_vel = turret[1].GetAngularVelocity().y
-	dt_rot -= angular_vel
 	turret[1].SetIsSleeping(False)
-	turret[1].ApplyTorque(gs.Vector3(0, dt_rot * mass, 0))
+	turret[1].ApplyTorque(gs.Vector3(0, dt_rot * mass * 200, 0))
 
 
 def spawn_enemy(plus, scn, pos = gs.Vector3(0, 2, 5)):
