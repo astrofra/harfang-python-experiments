@@ -36,7 +36,7 @@ def rotate_turret(turret, angle, mass):
 	rot = turret[0].GetTransform().GetRotation()
 	dt_rot = radians(angle) - rot.y
 	turret[1].SetIsSleeping(False)
-	turret[1].ApplyTorque(gs.Vector3(0, dt_rot * mass * 200, 0))
+	turret[1].ApplyTorque(gs.Vector3(0, dt_rot * mass * turret_rotation_speed, 0))
 
 
 def spawn_enemy(plus, scn, pos = gs.Vector3(0, 2, 5)):
@@ -61,8 +61,8 @@ def destroy_enemy(plus, scn, enemy):
 	scn.RemoveNode(enemy)
 
 
-def render_aim_cursor(plus, scn, pos_center, angle):
-	radius = 150.0
+def render_aim_cursor(plus, scn, angle):
+	radius = screen_width / 8
 	angle = 90 - angle
 	a = gs.Vector2(cos(radians(angle)), sin(radians(angle))) * radius * 1.15
 	b = gs.Vector2(cos(radians(angle - 5)), sin(radians(angle - 5))) * radius
@@ -73,19 +73,26 @@ def render_aim_cursor(plus, scn, pos_center, angle):
 					gs.Color.Green, gs.Color.Green, gs.Color.Green)
 
 
-def display_hud(plus, player_energy, cool_down):
+def display_hud(plus, player_energy, cool_down, score):
 
+	# Life bar
 	plus.Quad2D(screen_width * 0.015, screen_height * 0.225,
 				player_energy * screen_width * 0.15, screen_height * 0.225,
 				player_energy * screen_width * 0.15, screen_height * 0.175,
 				screen_width * 0.015, screen_height * 0.175,
 				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
+	plus.Text2D(screen_width * 0.018, screen_height * 0.1825, "LIFE", font_size, gs.Color.White, "aerial.ttf")
 
 	plus.Quad2D(screen_width * 0.015, screen_height * 0.15,
 				cool_down * screen_width * 0.15, screen_height * 0.15,
 				cool_down * screen_width * 0.15, screen_height * 0.1,
 				screen_width * 0.015, screen_height * 0.1,
 				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
+
+	plus.Text2D(screen_width * 0.018, screen_height * 0.1075, "HEAT", font_size, gs.Color.White, "aerial.ttf")
+
+	plus.Text2D(screen_width * 0.018, screen_height * 0.035, "SCORE", font_size, gs.Color.White, "aerial.ttf")
+	plus.Text2D(screen_width * 0.15, screen_height * 0.035, str(score), font_size, gs.Color.Green, "aerial.ttf")
 
 
 def rvect(r):
@@ -109,6 +116,7 @@ def game():
 	plus = gs.GetPlus()
 	plus.RenderInit(screen_width, screen_height)
 	game_device = gs.GetInputSystem().GetDevice("keyboard")
+	gs.MountFileDriver(gs.StdFileDriver())
 
 	scn, ground = setup_game_level(plus)
 	turret, cannon, turret_mass = create_turret(plus, scn)
@@ -120,6 +128,7 @@ def game():
 	turret_cool_down = 0.0
 	enemy_spawn_interval = 5  # every n second
 	player_life = max_player_life
+	score = 0
 
 	while not plus.KeyPress(gs.InputDevice.KeyEscape):
 		dt = plus.UpdateClock()
@@ -178,6 +187,8 @@ def game():
 							scn.RemoveNode(col_pair.GetNodeB())
 							debris_list.extend(create_explosion(plus, scn, pos))
 
+							score += 10
+
 		# Game difficulty
 		enemy_spawn_interval = max(1.0, enemy_spawn_interval - dt.to_sec() * 0.025)
 
@@ -188,9 +199,9 @@ def game():
 			scn.RemoveNode(tmp_debris)
 
 		plus.UpdateScene(scn, dt)
-		plus.Text2D(5, 5, "Turret Control, angle = " + str(target_angle) + ' ' + str(enemy_spawn_interval))
-		render_aim_cursor(plus, scn, turret[0].GetTransform().GetPosition() + gs.Vector3(0, 1, 0), target_angle)
-		display_hud(plus, player_life / max_player_life, max(0, turret_cool_down) / turret_cool_down_duration)
+
+		render_aim_cursor(plus, scn, target_angle)
+		display_hud(plus, player_life / max_player_life, max(0, turret_cool_down) / turret_cool_down_duration, score)
 		plus.Flip()
 
 game()
