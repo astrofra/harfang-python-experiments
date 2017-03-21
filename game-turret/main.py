@@ -1,4 +1,5 @@
 import gs
+from os import path
 from math import radians, cos, sin
 import random
 from constants import *
@@ -115,10 +116,19 @@ def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
 	return new_debris_list
 
 
+def play_sound_fx(mixer, sound_type):
+	sounds = {'explosion': 4, 'hit': 4, 'shoot': 4, 'game_start': 1, 'game_over': 1, 'select': 1, 'error':1}
+	if sound_type in sounds:
+		sound_index = str(random.randint(0, sounds[sound_type] - 1))
+		mixer.Start(mixer.LoadSound(path.join('sfx', sound_type + '_' + sound_index + '.wav')))
+
+
 def game():
 	plus = gs.GetPlus()
 	plus.RenderInit(screen_width, screen_height)
 	game_device = gs.GetInputSystem().GetDevice("keyboard")
+	al = gs.ALMixer()
+	al.Open()
 	gs.MountFileDriver(gs.StdFileDriver())
 
 	scn, ground = setup_game_level(plus)
@@ -133,6 +143,8 @@ def game():
 	player_life = max_player_life
 	score = 0
 
+	play_sound_fx(al, 'game_start')
+
 	while not plus.KeyPress(gs.InputDevice.KeyEscape):
 		dt = plus.UpdateClock()
 
@@ -143,9 +155,13 @@ def game():
 			if game_device.IsDown(gs.InputDevice.KeyLeft):
 				target_angle -= dt.to_sec() * aim_rotation_speed
 
-		if turret_cool_down < 0.0 and game_device.WasPressed(gs.InputDevice.KeySpace):
-			throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(2))
-			turret_cool_down = turret_cool_down_duration
+		if game_device.WasPressed(gs.InputDevice.KeySpace):
+			if turret_cool_down < 0.0:
+				throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(2))
+				turret_cool_down = turret_cool_down_duration
+				play_sound_fx(al, 'shoot')
+			else:
+				play_sound_fx(al, 'error')
 
 		turret_cool_down -= dt.to_sec()
 
@@ -175,12 +191,15 @@ def game():
 				destroy_enemy(plus, scn, enemy[0])
 				debris_list.extend(create_explosion(plus, scn, enemy[0].GetTransform().GetPosition()))
 				enemy_list.remove(enemy)
+				play_sound_fx(al, 'explosion')
+				play_sound_fx(al, 'hit')
 				player_life -= 1
 			else:
 				col_pairs = scn.GetPhysicSystem().GetCollisionPairs(enemy[0])
 				if len(col_pairs) > 0:
 					for col_pair in col_pairs:
 						if col_pair.GetNodeB().GetName() == 'bullet':
+							play_sound_fx(al, 'explosion')
 							pos = col_pair.GetNodeB().GetTransform().GetPosition()
 							debris_list.extend(create_explosion(plus, scn, pos, 8, 0.25))
 
