@@ -29,6 +29,7 @@ def setup_game_level(plus=None):
 def create_turret(plus=None, scn=None, pos=gs.Vector3(0, 0.75, 0), rot=gs.Vector3(), w=1, h=1.25, d=1, mass = 10):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(gs.LockX + gs.LockY + gs.LockZ + gs.LockRotX + gs.LockRotZ)
 	root = plus.AddPhysicCube(scn, gs.Matrix4.TransformationMatrix(pos, rot), w, h, d, mass)
+	root[0].SetName('turret')
 	root[1].SetAngularDamping(1.0)
 	cannon = plus.AddCube(scn, gs.Matrix4.TranslationMatrix((0, h * 0.2, d * 0.75)), w * 0.35, w * 0.35, d)
 	cannon.GetTransform().SetParent(root[0])
@@ -175,7 +176,7 @@ def game():
 			spawn_timer = 0
 			spawn_pos = gs.Vector3(random.uniform(-10, 10), 2.5, random.uniform(5.5, 6.5))
 			spawn_pos.Normalize()
-			spawn_pos = spawn_pos * 10.0
+			spawn_pos *= 10.0
 			spawn_pos.y = 5.0
 			new_enemy = spawn_enemy(plus, scn, spawn_pos)
 			enemy_list.append([new_enemy[0], new_enemy[1]])
@@ -187,29 +188,28 @@ def game():
 			enemy[1].SetIsSleeping(False)
 			enemy[1].ApplyLinearForce(enemy_dir * 0.25 * enemy_mass)
 
-			if gs.Vector3.Dist(turret[0].GetTransform().GetPosition(), enemy[0].GetTransform().GetPosition()) < 1.5:
-				destroy_enemy(plus, scn, enemy[0])
-				debris_list.extend(create_explosion(plus, scn, enemy[0].GetTransform().GetPosition()))
-				enemy_list.remove(enemy)
-				play_sound_fx(al, 'explosion')
-				play_sound_fx(al, 'hit')
-				player_life -= 1
-			else:
-				col_pairs = scn.GetPhysicSystem().GetCollisionPairs(enemy[0])
-				if len(col_pairs) > 0:
-					for col_pair in col_pairs:
-						if col_pair.GetNodeB().GetName() == 'bullet':
-							play_sound_fx(al, 'explosion')
-							pos = col_pair.GetNodeB().GetTransform().GetPosition()
-							debris_list.extend(create_explosion(plus, scn, pos, 8, 0.25))
+			col_pairs = scn.GetPhysicSystem().GetCollisionPairs(enemy[0])
+			for col_pair in col_pairs:
+				if 'turret' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
+					destroy_enemy(plus, scn, enemy[0])
+					debris_list.extend(create_explosion(plus, scn, enemy[0].GetTransform().GetPosition()))
+					enemy_list.remove(enemy)
+					play_sound_fx(al, 'explosion')
+					play_sound_fx(al, 'hit')
+					player_life -= 1
+				else:
+					if 'bullet' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
+						play_sound_fx(al, 'explosion')
+						pos = col_pair.GetNodeB().GetTransform().GetPosition()
+						debris_list.extend(create_explosion(plus, scn, pos, 8, 0.25))
 
-							pos = enemy[0].GetTransform().GetPosition()
-							destroy_enemy(plus, scn, enemy[0])
-							enemy_list.remove(enemy)
-							scn.RemoveNode(col_pair.GetNodeB())
-							debris_list.extend(create_explosion(plus, scn, pos))
+						pos = enemy[0].GetTransform().GetPosition()
+						destroy_enemy(plus, scn, enemy[0])
+						enemy_list.remove(enemy)
+						scn.RemoveNode(col_pair.GetNodeB())
+						debris_list.extend(create_explosion(plus, scn, pos))
 
-							score += 10
+						score += 10
 
 		# Game difficulty
 		enemy_spawn_interval = max(1.0, enemy_spawn_interval - dt.to_sec() * 0.025)
@@ -218,7 +218,8 @@ def game():
 		if len(debris_list) > max_debris:
 			tmp_debris = debris_list[0]
 			debris_list.remove(debris_list[0])
-			scn.RemoveNode(tmp_debris)
+			tmp_debris.RemoveComponent(tmp_debris.GetComponent("RigidBody"))
+			# scn.RemoveNode(tmp_debris)
 
 		plus.UpdateScene(scn, dt)
 
