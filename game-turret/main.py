@@ -16,7 +16,10 @@ def setup_game_level(plus=None):
 
 	cam_matrix = gs.Matrix4.TransformationMatrix(gs.Vector3(0, 15, 3), gs.Vector3(radians(90), 0, 0))
 	cam = plus.AddCamera(scn, cam_matrix)
-	plus.AddLight(scn, gs.Matrix4.TranslationMatrix((-10, 10, 10)))
+	plus.AddLight(scn, gs.Matrix4.TransformationMatrix(gs.Vector3(-10, 10, 5), gs.Vector3(radians(55), radians(100), 0)), gs.Light.Model_Spot, 40.0, True)
+	env_blue = gs.Color.Blue + gs.Color.Green * 0.5
+	plus.AddLight(scn, gs.Matrix4.TranslationMatrix(gs.Vector3(10, -25, -5)), gs.Light.Model_Point, 0.0, False, env_blue, gs.Color.Black)
+	plus.AddEnvironment(scn, gs.Color.Black, env_blue * 0.15)
 	ground = plus.AddPhysicPlane(scn)
 
 	return scn, ground
