@@ -31,7 +31,9 @@ def create_turret(plus=None, scn=None, pos=gs.Vector3(0, 0.75, 0), rot=gs.Vector
 	root = plus.AddPhysicCube(scn, gs.Matrix4.TransformationMatrix(pos, rot), w, h, d, mass)
 	root[0].SetName('turret')
 	root[1].SetAngularDamping(1.0)
-	cannon = plus.AddCube(scn, gs.Matrix4.TranslationMatrix((0, h * 0.2, d * 0.75)), w * 0.35, w * 0.35, d)
+	cannon_geo = plus.CreateGeometry(plus.CreateCylinder(w * 0.25, d))
+	cannon = plus.AddObject(scn, cannon_geo, gs.Matrix4.TransformationMatrix(gs.Vector3(0, h * 0.2, d * 0.75),
+																			 gs.Vector3(radians(90), 0, 0)))
 	cannon.GetTransform().SetParent(root[0])
 
 	return root, cannon, mass
@@ -158,11 +160,12 @@ def game():
 
 		if game_device.WasPressed(gs.InputDevice.KeySpace):
 			if turret_cool_down < 0.0:
-				throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(2))
+				throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(1))
 				turret_cool_down = turret_cool_down_duration
 				play_sound_fx(al, 'shoot')
 			else:
 				play_sound_fx(al, 'error')
+				turret_cool_down += 10.0 * dt.to_sec()
 
 		turret_cool_down -= dt.to_sec()
 
