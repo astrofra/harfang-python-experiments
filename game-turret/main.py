@@ -156,22 +156,24 @@ def game():
 
 	scn, ground = setup_game_level(plus)
 	turret, cannon, turret_mass = create_turret(plus, scn)
-	target_angle = 0.0
 
-	enemy_list = []
-	debris_list = []
-	spawn_timer = 0.0
-	turret_cool_down = 0.0
-	enemy_spawn_interval = 5  # every n second
-	player_life = max_player_life
-
-	game_state = "TITLE"
-	score = 0
-
-	play_sound_fx(al, 'game_start')
+	game_state = "GAME_INIT"
 
 	while not plus.KeyPress(gs.InputDevice.KeyEscape):
 		dt = plus.UpdateClock()
+
+		# Initialize Game
+		if game_state == "GAME_INIT":
+			enemy_list = []
+			debris_list = []
+			spawn_timer = 0.0
+			turret_cool_down = 0.0
+			enemy_spawn_interval = max_enemy_spawn_interval
+			player_life = max_player_life
+			target_angle = 0.0
+			score = 0
+			play_sound_fx(al, 'game_start')
+			game_state = "TITLE"
 
 		# Title screen
 		if game_state == "TITLE":
@@ -230,6 +232,7 @@ def game():
 						play_sound_fx(al, 'hit')
 						player_life -= 1
 						if player_life < 1:
+							play_sound_fx(al, 'game_over')
 							game_state = "GAME_OVER"
 					else:
 						if 'bullet' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
@@ -257,10 +260,22 @@ def game():
 
 			render_aim_cursor(plus, scn, target_angle)
 			display_hud(plus, player_life / max_player_life, max(0, turret_cool_down) / turret_cool_down_duration, score)
+
+		# Game over screen
 		elif game_state == "GAME_OVER":
 			display_game_over(plus, scn, score)
 			if plus.KeyReleased(gs.InputDevice.KeySpace):
-				game_state = "TITLE"
+				game_state = "SCENE_RESET"
+
+		# Reset the playfield for a new game
+		elif game_state == "SCENE_RESET":
+			for enemy in enemy_list:
+				destroy_enemy(plus, scn, enemy[0])
+
+			for debris in debris_list:
+				debris.RemoveComponent(debris.GetComponent("RigidBody"))
+
+			game_state = "GAME_INIT"
 
 		plus.UpdateScene(scn, dt)
 		plus.Flip()
