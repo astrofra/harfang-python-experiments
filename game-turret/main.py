@@ -1,14 +1,14 @@
 import gs
 from os import path
 from math import radians, cos, sin
-import random
+from random import uniform, randint
 from constants import *
 
 gs.LoadPlugins()
 
 
 def rvect(r):
-	return gs.Vector3(random.uniform(-r, r), random.uniform(-r, r), random.uniform(-r, r))
+	return gs.Vector3(uniform(-r, r), uniform(-r, r), uniform(-r, r))
 
 
 def setup_game_level(plus=None):
@@ -20,7 +20,7 @@ def setup_game_level(plus=None):
 	scn.GetPhysicSystem().SetDebugVisuals(False)
 
 	cam_matrix = gs.Matrix4.TransformationMatrix(gs.Vector3(0, 15, 3), gs.Vector3(radians(90), 0, 0))
-	cam = plus.AddCamera(scn, cam_matrix)
+	plus.AddCamera(scn, cam_matrix)
 	plus.AddLight(scn, gs.Matrix4.TransformationMatrix(gs.Vector3(-10, 10, 5), gs.Vector3(radians(55), radians(100), 0)), gs.Light.Model_Spot, 40.0, True)
 	env_blue = gs.Color.Blue + gs.Color.Green * 0.5
 	plus.AddLight(scn, gs.Matrix4.TranslationMatrix(gs.Vector3(10, -25, -5)), gs.Light.Model_Point, 0.0, False, env_blue, gs.Color.Black)
@@ -68,7 +68,6 @@ def throw_bullet(plus, scn, pos, dir):
 
 
 def destroy_enemy(plus, scn, enemy):
-	pos = enemy.GetTransform().GetPosition()
 	scn.RemoveNode(enemy)
 
 
@@ -110,7 +109,7 @@ def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(0)
 	new_debris_list = []
 	for i in range(debris_amount):
-		debris_size = random.uniform(0.1, 0.25)
+		debris_size = uniform(0.1, 0.25)
 		debris = plus.AddPhysicCube(scn, gs.Matrix4().TransformationMatrix(pos + rvect(debris_radius), rvect(radians(45))),
 									debris_size, debris_size, debris_size, 0.05)
 		debris[1].ApplyLinearImpulse(rvect(0.25))
@@ -122,7 +121,7 @@ def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
 def play_sound_fx(mixer, sound_type):
 	sounds = {'explosion': 4, 'hit': 4, 'shoot': 4, 'game_start': 1, 'game_over': 1, 'select': 1, 'error':1}
 	if sound_type in sounds:
-		sound_index = str(random.randint(0, sounds[sound_type] - 1))
+		sound_index = str(randint(0, sounds[sound_type] - 1))
 		mixer.Start(mixer.LoadSound(path.join('sfx', sound_type + '_' + sound_index + '.wav')))
 
 
@@ -208,7 +207,7 @@ def game():
 			spawn_timer += dt.to_sec()
 			if spawn_timer > enemy_spawn_interval:
 				spawn_timer = 0
-				spawn_pos = gs.Vector3(random.uniform(-10, 10), 2.5, random.uniform(5.5, 6.5))
+				spawn_pos = gs.Vector3(uniform(-10, 10), 2.5, uniform(5.5, 6.5))
 				spawn_pos.Normalize()
 				spawn_pos *= 10.0
 				spawn_pos.y = 5.0
