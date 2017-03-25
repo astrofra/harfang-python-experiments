@@ -9,7 +9,7 @@ gsplus.RenderInit(640, 400, "../pkg.core")
 
 scn = gsplus.NewScene()
 
-gsplus.AddPhysicCube(scn, gs.Matrix4.TranslationMatrix(gs.Vector3(0, 0.5, 0)))
+gsplus.AddPhysicCube(scn, gs.Matrix4.TranslationMatrix(gs.Vector3(0, 0.5, 0)), 1, 1, 1, 0)
 
 cam = gsplus.AddCamera(scn, gs.Matrix4.TranslationMatrix(gs.Vector3(0, 40, 0)))
 cam.GetTransform().SetRotation(gs.Vector3(pi / 2, 0, 0))
