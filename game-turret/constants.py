@@ -3,6 +3,8 @@ screen_width = 1280
 screen_height = 720
 font_size = screen_width / 40
 
+game_states = ["title", "game", "game_over"]
+
 max_player_life = 5
 
 aim_rotation_speed = 90.0

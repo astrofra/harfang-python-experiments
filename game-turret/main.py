@@ -7,6 +7,10 @@ from constants import *
 gs.LoadPlugins()
 
 
+def rvect(r):
+	return gs.Vector3(random.uniform(-r, r), random.uniform(-r, r), random.uniform(-r, r))
+
+
 def setup_game_level(plus=None):
 	scn = plus.NewScene()
 
@@ -102,10 +106,6 @@ def display_hud(plus, player_energy, cool_down, score):
 	plus.Text2D(screen_width * 0.15, screen_height * 0.035, str(score), font_size, gs.Color.Green, "aerial.ttf")
 
 
-def rvect(r):
-	return gs.Vector3(random.uniform(-r, r), random.uniform(-r, r), random.uniform(-r, r))
-
-
 def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(0)
 	new_debris_list = []
@@ -126,10 +126,30 @@ def play_sound_fx(mixer, sound_type):
 		mixer.Start(mixer.LoadSound(path.join('sfx', sound_type + '_' + sound_index + '.wav')))
 
 
+def display_title_screen(plus, scn):
+	plus.Text2D(screen_width * 0.15, screen_height * 0.625, "BOULDER\nATTACKS", font_size * 4.25, gs.Color(0,0,0,0.25), "aerial.ttf")
+	plus.Text2D(screen_width * 0.15, screen_height * 0.65, "BOULDER\nATTACKS", font_size * 4.25, gs.Color.Green, "aerial.ttf")
+
+	fade = abs(sin(plus.GetClock().to_sec()))
+	plus.Text2D(screen_width * 0.35, screen_height * 0.35, "PRESS SPACE", font_size * 1.25,
+				gs.Color.Green * gs.Color(1, 1, 1, fade), "aerial.ttf")
+
+
+def display_game_over(plus, scn, score):
+	plus.Text2D(screen_width * 0.2, screen_height * 0.625, "GAME\n  OVER", font_size * 4.25, gs.Color(0,0,0,0.25), "aerial.ttf")
+	plus.Text2D(screen_width * 0.2, screen_height * 0.65, "GAME\n  OVER", font_size * 4.25, gs.Color.Red, "aerial.ttf")
+
+	plus.Text2D(screen_width * 0.3, screen_height * 0.35, "YOU SCORED " + str(score), font_size * 1.25,
+				gs.Color.Red, "aerial.ttf")
+
+	fade = abs(sin(plus.GetClock().to_sec()))
+	plus.Text2D(screen_width * 0.3, screen_height * 0.25, "PRESS SPACE", font_size * 1.25,
+				gs.Color.Red * gs.Color(1, 1, 1, fade), "aerial.ttf")
+
+
 def game():
 	plus = gs.GetPlus()
 	plus.RenderInit(screen_width, screen_height)
-	game_device = gs.GetInputSystem().GetDevice("keyboard")
 	al = gs.ALMixer()
 	al.Open()
 	gs.MountFileDriver(gs.StdFileDriver())
@@ -144,6 +164,8 @@ def game():
 	turret_cool_down = 0.0
 	enemy_spawn_interval = 5  # every n second
 	player_life = max_player_life
+
+	game_state = "TITLE"
 	score = 0
 
 	play_sound_fx(al, 'game_start')
@@ -151,83 +173,96 @@ def game():
 	while not plus.KeyPress(gs.InputDevice.KeyEscape):
 		dt = plus.UpdateClock()
 
-		# Turret
-		if game_device.IsDown(gs.InputDevice.KeyRight):
-			target_angle += dt.to_sec() * aim_rotation_speed
-		else:
-			if game_device.IsDown(gs.InputDevice.KeyLeft):
-				target_angle -= dt.to_sec() * aim_rotation_speed
-
-		if game_device.WasPressed(gs.InputDevice.KeySpace):
-			if turret_cool_down < 0.0:
-				throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(1))
-				turret_cool_down = turret_cool_down_duration
-				play_sound_fx(al, 'shoot')
+		# Title screen
+		if game_state == "TITLE":
+			display_title_screen(plus, scn)
+			if plus.KeyReleased(gs.InputDevice.KeySpace):
+				game_state = "GAME"
+		# Game
+		elif game_state == "GAME":
+			# Turret
+			if plus.KeyDown(gs.InputDevice.KeyRight):
+				target_angle += dt.to_sec() * aim_rotation_speed
 			else:
-				play_sound_fx(al, 'error')
-				turret_cool_down += 10.0 * dt.to_sec()
+				if plus.KeyDown(gs.InputDevice.KeyLeft):
+					target_angle -= dt.to_sec() * aim_rotation_speed
 
-		turret_cool_down -= dt.to_sec()
-
-		target_angle = max(min(target_angle, aim_angle_range['max']), aim_angle_range['min'])
-
-		rotate_turret(turret, target_angle, turret_mass)
-
-		# Enemies
-		spawn_timer += dt.to_sec()
-		if spawn_timer > enemy_spawn_interval:
-			spawn_timer = 0
-			spawn_pos = gs.Vector3(random.uniform(-10, 10), 2.5, random.uniform(5.5, 6.5))
-			spawn_pos.Normalize()
-			spawn_pos *= 10.0
-			spawn_pos.y = 5.0
-			new_enemy = spawn_enemy(plus, scn, spawn_pos)
-			enemy_list.append([new_enemy[0], new_enemy[1]])
-
-		for enemy in enemy_list:
-			# make enemy crawl toward the player
-			enemy_dir = turret[0].GetTransform().GetPosition() - enemy[0].GetTransform().GetPosition()
-			enemy_dir.Normalize()
-			enemy[1].SetIsSleeping(False)
-			enemy[1].ApplyLinearForce(enemy_dir * 0.25 * enemy_mass)
-
-			col_pairs = scn.GetPhysicSystem().GetCollisionPairs(enemy[0])
-			for col_pair in col_pairs:
-				if 'turret' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
-					destroy_enemy(plus, scn, enemy[0])
-					debris_list.extend(create_explosion(plus, scn, enemy[0].GetTransform().GetPosition()))
-					enemy_list.remove(enemy)
-					play_sound_fx(al, 'explosion')
-					play_sound_fx(al, 'hit')
-					player_life -= 1
+			if plus.KeyPress(gs.InputDevice.KeySpace):
+				if turret_cool_down < 0.0:
+					throw_bullet(plus, scn, cannon.GetTransform().GetWorld().GetTranslation(), cannon.GetTransform().GetWorld().GetRow(1))
+					turret_cool_down = turret_cool_down_duration
+					play_sound_fx(al, 'shoot')
 				else:
-					if 'bullet' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
-						play_sound_fx(al, 'explosion')
-						pos = col_pair.GetNodeB().GetTransform().GetPosition()
-						debris_list.extend(create_explosion(plus, scn, pos, 8, 0.25))
+					play_sound_fx(al, 'error')
+					turret_cool_down += 10.0 * dt.to_sec()
 
-						pos = enemy[0].GetTransform().GetPosition()
+			turret_cool_down -= dt.to_sec()
+
+			target_angle = max(min(target_angle, aim_angle_range['max']), aim_angle_range['min'])
+
+			rotate_turret(turret, target_angle, turret_mass)
+
+			# Enemies
+			spawn_timer += dt.to_sec()
+			if spawn_timer > enemy_spawn_interval:
+				spawn_timer = 0
+				spawn_pos = gs.Vector3(random.uniform(-10, 10), 2.5, random.uniform(5.5, 6.5))
+				spawn_pos.Normalize()
+				spawn_pos *= 10.0
+				spawn_pos.y = 5.0
+				new_enemy = spawn_enemy(plus, scn, spawn_pos)
+				enemy_list.append([new_enemy[0], new_enemy[1]])
+
+			for enemy in enemy_list:
+				# make enemy crawl toward the player
+				enemy_dir = turret[0].GetTransform().GetPosition() - enemy[0].GetTransform().GetPosition()
+				enemy_dir.Normalize()
+				enemy[1].SetIsSleeping(False)
+				enemy[1].ApplyLinearForce(enemy_dir * 0.25 * enemy_mass)
+
+				col_pairs = scn.GetPhysicSystem().GetCollisionPairs(enemy[0])
+				for col_pair in col_pairs:
+					if 'turret' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
 						destroy_enemy(plus, scn, enemy[0])
+						debris_list.extend(create_explosion(plus, scn, enemy[0].GetTransform().GetPosition()))
 						enemy_list.remove(enemy)
-						scn.RemoveNode(col_pair.GetNodeB())
-						debris_list.extend(create_explosion(plus, scn, pos))
+						play_sound_fx(al, 'explosion')
+						play_sound_fx(al, 'hit')
+						player_life -= 1
+						if player_life < 1:
+							game_state = "GAME_OVER"
+					else:
+						if 'bullet' in [col_pair.GetNodeA().GetName(), col_pair.GetNodeB().GetName()]:
+							play_sound_fx(al, 'explosion')
+							pos = col_pair.GetNodeB().GetTransform().GetPosition()
+							debris_list.extend(create_explosion(plus, scn, pos, 8, 0.25))
 
-						score += 10
+							pos = enemy[0].GetTransform().GetPosition()
+							destroy_enemy(plus, scn, enemy[0])
+							enemy_list.remove(enemy)
+							scn.RemoveNode(col_pair.GetNodeB())
+							debris_list.extend(create_explosion(plus, scn, pos))
 
-		# Game difficulty
-		enemy_spawn_interval = max(1.0, enemy_spawn_interval - dt.to_sec() * 0.025)
+							score += 10
 
-		# Cleanup debris
-		if len(debris_list) > max_debris:
-			tmp_debris = debris_list[0]
-			debris_list.remove(debris_list[0])
-			tmp_debris.RemoveComponent(tmp_debris.GetComponent("RigidBody"))
-			# scn.RemoveNode(tmp_debris)
+				# Game difficulty
+				enemy_spawn_interval = max(1.0, enemy_spawn_interval - dt.to_sec() * 0.025)
+
+				# Cleanup debris
+				if len(debris_list) > max_debris:
+					tmp_debris = debris_list[0]
+					debris_list.remove(debris_list[0])
+					tmp_debris.RemoveComponent(tmp_debris.GetComponent("RigidBody"))
+					# scn.RemoveNode(tmp_debris)
+
+			render_aim_cursor(plus, scn, target_angle)
+			display_hud(plus, player_life / max_player_life, max(0, turret_cool_down) / turret_cool_down_duration, score)
+		elif game_state == "GAME_OVER":
+			display_game_over(plus, scn, score)
+			if plus.KeyReleased(gs.InputDevice.KeySpace):
+				game_state = "TITLE"
 
 		plus.UpdateScene(scn, dt)
-
-		render_aim_cursor(plus, scn, target_angle)
-		display_hud(plus, player_life / max_player_life, max(0, turret_cool_down) / turret_cool_down_duration, score)
 		plus.Flip()
 
 game()
