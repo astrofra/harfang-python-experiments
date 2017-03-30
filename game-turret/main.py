@@ -52,7 +52,7 @@ def rotate_turret(turret, angle, mass):
 
 def spawn_enemy(plus, scn, pos = gs.Vector3(0, 2, 5)):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(0)
-	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.7, 6, 16, enemy_mass)
+	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.7, 6, 16, enemy_mass, "assets/materials/green.mat")
 	root[0].SetName('enemy')
 
 	return root
@@ -60,7 +60,7 @@ def spawn_enemy(plus, scn, pos = gs.Vector3(0, 2, 5)):
 
 def throw_bullet(plus, scn, pos, dir):
 	scn.GetPhysicSystem().SetForceRigidBodyAxisLockOnCreation(gs.LockY)
-	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.2, 3, 8)
+	root = plus.AddPhysicSphere(scn, gs.Matrix4.TranslationMatrix(pos), 0.2, 3, 8, 1.0, "assets/materials/grey.mat")
 	root[0].SetName('bullet')
 	root[1].ApplyLinearImpulse(dir * bullet_velocity)
 
@@ -91,7 +91,7 @@ def display_hud(plus, player_energy, cool_down, score):
 				player_energy * screen_width * 0.15, screen_height * 0.175,
 				screen_width * 0.015, screen_height * 0.175,
 				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
-	plus.Text2D(screen_width * 0.018, screen_height * 0.1825, "LIFE", font_size, gs.Color.White, "aerial.ttf")
+	plus.Text2D(screen_width * 0.018, screen_height * 0.1825, "LIFE", font_size, gs.Color.White, screen_font)
 
 	plus.Quad2D(screen_width * 0.015, screen_height * 0.15,
 				cool_down * screen_width * 0.15, screen_height * 0.15,
@@ -99,10 +99,10 @@ def display_hud(plus, player_energy, cool_down, score):
 				screen_width * 0.015, screen_height * 0.1,
 				gs.Color.Green, gs.Color.Green, gs.Color.Green, gs.Color.Green)
 
-	plus.Text2D(screen_width * 0.018, screen_height * 0.1075, "HEAT", font_size, gs.Color.White, "aerial.ttf")
+	plus.Text2D(screen_width * 0.018, screen_height * 0.1075, "HEAT", font_size, gs.Color.White, screen_font)
 
-	plus.Text2D(screen_width * 0.018, screen_height * 0.035, "SCORE", font_size, gs.Color.White, "aerial.ttf")
-	plus.Text2D(screen_width * 0.15, screen_height * 0.035, str(score), font_size, gs.Color.Green, "aerial.ttf")
+	plus.Text2D(screen_width * 0.018, screen_height * 0.035, "SCORE", font_size, gs.Color.White, screen_font)
+	plus.Text2D(screen_width * 0.15, screen_height * 0.035, str(score), font_size, gs.Color.Green, screen_font)
 
 
 def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
@@ -111,7 +111,7 @@ def create_explosion(plus, scn, pos, debris_amount=32, debris_radius=0.5):
 	for i in range(debris_amount):
 		debris_size = uniform(0.1, 0.25)
 		debris = plus.AddPhysicCube(scn, gs.Matrix4().TransformationMatrix(pos + rvect(debris_radius), rvect(radians(45))),
-									debris_size, debris_size, debris_size, 0.05)
+									debris_size, debris_size, debris_size, 0.05, "assets/materials/green.mat")
 		debris[1].ApplyLinearImpulse(rvect(0.25))
 		new_debris_list.append(debris[0])
 
@@ -122,28 +122,28 @@ def play_sound_fx(mixer, sound_type):
 	sounds = {'explosion': 4, 'hit': 4, 'shoot': 4, 'game_start': 1, 'game_over': 1, 'select': 1, 'error':1}
 	if sound_type in sounds:
 		sound_index = str(randint(0, sounds[sound_type] - 1))
-		mixer.Start(mixer.LoadSound(path.join('sfx', sound_type + '_' + sound_index + '.wav')))
+		mixer.Start(mixer.LoadSound(path.join('assets', 'sfx', sound_type + '_' + sound_index + '.wav')))
 
 
 def display_title_screen(plus, scn):
-	plus.Text2D(screen_width * 0.15, screen_height * 0.625, "BOULDER\nATTACKS", font_size * 4.25, gs.Color(0,0,0,0.25), "aerial.ttf")
-	plus.Text2D(screen_width * 0.15, screen_height * 0.65, "BOULDER\nATTACKS", font_size * 4.25, gs.Color.Green, "aerial.ttf")
+	plus.Text2D(screen_width * 0.15, screen_height * 0.625, "BOULDER\nATTACKS", font_size * 4.25, gs.Color(0,0,0,0.25), screen_font)
+	plus.Text2D(screen_width * 0.15, screen_height * 0.65, "BOULDER\nATTACKS", font_size * 4.25, gs.Color.Green, screen_font)
 
 	fade = abs(sin(plus.GetClock().to_sec()))
 	plus.Text2D(screen_width * 0.35, screen_height * 0.35, "PRESS SPACE", font_size * 1.25,
-				gs.Color.Green * gs.Color(1, 1, 1, fade), "aerial.ttf")
+				gs.Color.Green * gs.Color(1, 1, 1, fade), screen_font)
 
 
 def display_game_over(plus, scn, score):
-	plus.Text2D(screen_width * 0.2, screen_height * 0.625, "GAME\n  OVER", font_size * 4.25, gs.Color(0,0,0,0.25), "aerial.ttf")
-	plus.Text2D(screen_width * 0.2, screen_height * 0.65, "GAME\n  OVER", font_size * 4.25, gs.Color.Red, "aerial.ttf")
+	plus.Text2D(screen_width * 0.2, screen_height * 0.625, "GAME\n  OVER", font_size * 4.25, gs.Color(0,0,0,0.25), screen_font)
+	plus.Text2D(screen_width * 0.2, screen_height * 0.65, "GAME\n  OVER", font_size * 4.25, gs.Color.Red, screen_font)
 
 	plus.Text2D(screen_width * 0.3, screen_height * 0.35, "YOU SCORED " + str(score), font_size * 1.25,
-				gs.Color.Red, "aerial.ttf")
+				gs.Color.Red, screen_font)
 
 	fade = abs(sin(plus.GetClock().to_sec()))
 	plus.Text2D(screen_width * 0.3, screen_height * 0.25, "PRESS SPACE", font_size * 1.25,
-				gs.Color.Red * gs.Color(1, 1, 1, fade), "aerial.ttf")
+				gs.Color.Red * gs.Color(1, 1, 1, fade), screen_font)
 
 
 def game():

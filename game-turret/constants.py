@@ -2,6 +2,7 @@
 screen_width = 1280
 screen_height = 720
 font_size = screen_width / 40
+screen_font = "assets/fonts/aerial.ttf"
 
 max_player_life = 5
 max_enemy_spawn_interval = 5.0 # in seconds
