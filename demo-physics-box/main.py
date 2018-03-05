@@ -61,6 +61,9 @@ while not plus.IsAppEnded():
 
 	fps.UpdateAndApplyToNode(cam, dt_sec)
 
+	if uniform(0.0, 1.0) > 0.95:
+		scn.GetPhysicSystem().SetGravity(hg.Vector3(uniform(-3,3), uniform(-3,3), uniform(-3,3)))
+
 	spawn_every += 1
 	if spawn_every > 8:
 		spawn_every = 0
