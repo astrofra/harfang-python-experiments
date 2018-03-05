@@ -39,9 +39,9 @@ def spawn_new_box():
 	new_pos = hg.Vector3(uniform(BOX_SIZE * -0.45, BOX_SIZE * 0.45), BOX_SIZE * 0.5, uniform(BOX_SIZE * -0.45, BOX_SIZE * 0.45))
 	new_size = uniform(SBOX_SIZE * 0.25, SBOX_SIZE)
 	new_cube, rb = plus.AddPhysicCube(scn, hg.Matrix4.TranslationMatrix(new_pos), new_size, new_size, new_size, 1.0, "assets/materials/orange.mat")
-	cube_list.append([new_cube, rb])
 	new_light = plus.AddLight(scn, hg.Matrix4(), hg.LightModelPoint, new_size * 2.0, False, hg.Color.Orange, hg.Color.Orange) # plus.AddLight(scn)
 	new_light.GetTransform().SetParent(new_cube)
+	cube_list.append([new_cube, rb, new_light])
 
 # rigid_body.SetCollisionLayer(1)
 #
@@ -66,9 +66,12 @@ while not plus.IsAppEnded():
 		spawn_every = 0
 		spawn_new_box()
 
-	if len(cube_list) > 2:
-		cube_list[0][1].SetType(hg.RigidBodyStatic)
-		cube_list.remove(cube_list[0])
+		if len(cube_list) > 64:
+			cube_list[0][1].SetType(hg.RigidBodyDynamic)
+			# cube_list[0][0].GetComponents("Collision").at(0).SetMass(0.0)
+			# cube_list[0][1].SetIsSleeping(True)
+			scn.RemoveNode(cube_list[0][2])
+			cube_list.remove(cube_list[0])
 
 	plus.UpdateScene(scn, dt_sec)
 	plus.Flip()
